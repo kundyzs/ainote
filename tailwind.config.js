@@ -2,6 +2,7 @@
 module.exports = {
     darkMode: ["class"],
     content: [
+      "./frontend/**/*.{ts,tsx}",
       "./pages/**/*.{ts,tsx}",
       "./components/**/*.{ts,tsx}",
       "./app/**/*.{ts,tsx}",
@@ -75,5 +76,3 @@ module.exports = {
     },
     plugins: [require("tailwindcss-animate")],
   }
-  
-  

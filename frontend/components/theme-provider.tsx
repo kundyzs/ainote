@@ -3,7 +3,7 @@
 import React from "react"
 
 import { createContext, useContext, useEffect, useState } from "react"
-
+import { ThemeProvider as EmotionThemeProvider } from "next-themes"
 type Theme = "dark" | "light" | "system"
 
 type ThemeProviderProps = {

@@ -1,4 +1,6 @@
-import React, { useRef, useEffect } from 'react'
+"use client"
+
+import React, { useEffect, useRef } from "react"
 
 export default function AnimatedBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -12,7 +14,6 @@ export default function AnimatedBackground() {
 
     // Set canvas dimensions
     const setCanvasDimensions = () => {
-      if (!canvas) return
       canvas.width = window.innerWidth
       canvas.height = window.innerHeight
     }
@@ -29,18 +30,10 @@ export default function AnimatedBackground() {
       speedY: number
       color: string
       opacity: number
+      canvas: HTMLCanvasElement
 
-      constructor() {
-        if (!canvas) {
-          this.x = 0
-          this.y = 0
-          this.size = 0
-          this.speedX = 0
-          this.speedY = 0
-          this.color = ''
-          this.opacity = 0
-          return
-        }
+      constructor(canvas: HTMLCanvasElement) {
+        this.canvas = canvas
         this.x = Math.random() * canvas.width
         this.y = Math.random() * canvas.height
         this.size = Math.random() * 3 + 1
@@ -61,14 +54,13 @@ export default function AnimatedBackground() {
       }
 
       update() {
-        if (!canvas) return
         this.x += this.speedX
         this.y += this.speedY
 
-        if (this.x > canvas.width) this.x = 0
-        if (this.x < 0) this.x = canvas.width
-        if (this.y > canvas.height) this.y = 0
-        if (this.y < 0) this.y = canvas.height
+        if (this.x > this.canvas.width) this.x = 0
+        if (this.x < 0) this.x = this.canvas.width
+        if (this.y > this.canvas.height) this.y = 0
+        if (this.y < 0) this.y = this.canvas.height
       }
 
       draw() {
@@ -86,12 +78,11 @@ export default function AnimatedBackground() {
     const particleCount = Math.min(100, Math.floor((window.innerWidth * window.innerHeight) / 10000))
 
     for (let i = 0; i < particleCount; i++) {
-      particles.push(new Particle())
+      particles.push(new Particle(canvas))
     }
 
     // Animation loop
     const animate = () => {
-      if (!canvas) return
       ctx.clearRect(0, 0, canvas.width, canvas.height)
 
       // Create gradient background

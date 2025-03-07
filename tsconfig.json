@@ -1,16 +1,41 @@
 {
-    "compilerOptions": {
-      "target": "esnext",
-      "module": "commonjs",
-      "strict": true,
-      "esModuleInterop": true,
-      "skipLibCheck": true,
-      "forceConsistentCasingInFileNames": true,
-      "jsx": "react-jsx", // Add this line for React JSX support
-      "baseUrl": ".",
-      "paths": {
-        "@/*": ["frontend/*"]
-      }
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "jsx": "preserve", // Add this line for React JSX support
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "frontend/*"
+      ]
     },
-    "include": ["frontend/**/*"]
-  }
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "noEmit": true,
+    "incremental": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
+  },
+  "include": [
+    "frontend/**/*",
+    "app",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
