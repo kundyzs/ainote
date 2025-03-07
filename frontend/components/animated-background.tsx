@@ -1,6 +1,4 @@
-"use client"
-
-import React, { useEffect, useRef } from "react"
+import React, { useRef, useEffect } from 'react'
 
 export default function AnimatedBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -14,6 +12,7 @@ export default function AnimatedBackground() {
 
     // Set canvas dimensions
     const setCanvasDimensions = () => {
+      if (!canvas) return
       canvas.width = window.innerWidth
       canvas.height = window.innerHeight
     }
@@ -32,6 +31,16 @@ export default function AnimatedBackground() {
       opacity: number
 
       constructor() {
+        if (!canvas) {
+          this.x = 0
+          this.y = 0
+          this.size = 0
+          this.speedX = 0
+          this.speedY = 0
+          this.color = ''
+          this.opacity = 0
+          return
+        }
         this.x = Math.random() * canvas.width
         this.y = Math.random() * canvas.height
         this.size = Math.random() * 3 + 1
@@ -52,6 +61,7 @@ export default function AnimatedBackground() {
       }
 
       update() {
+        if (!canvas) return
         this.x += this.speedX
         this.y += this.speedY
 
@@ -81,6 +91,7 @@ export default function AnimatedBackground() {
 
     // Animation loop
     const animate = () => {
+      if (!canvas) return
       ctx.clearRect(0, 0, canvas.width, canvas.height)
 
       // Create gradient background
@@ -129,4 +140,3 @@ export default function AnimatedBackground() {
 
   return <canvas ref={canvasRef} className="fixed top-0 left-0 w-full h-full -z-10" />
 }
-

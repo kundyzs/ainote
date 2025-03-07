@@ -12,7 +12,7 @@ interface ScreenCaptureProps {
 export default function ScreenCapture({ isActive }: ScreenCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const requestRef = useRef<number>()
+  const requestRef = useRef<number | null>(null)
   const [processingStatus, setProcessingStatus] = useState<string | null>(null)
 
   // In a real app, we would set up actual screen capture

@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+      "target": "esnext",
+      "module": "commonjs",
+      "strict": true,
+      "esModuleInterop": true,
+      "skipLibCheck": true,
+      "forceConsistentCasingInFileNames": true,
+      "jsx": "react-jsx", // Add this line for React JSX support
+      "baseUrl": ".",
+      "paths": {
+        "@/*": ["frontend/*"]
+      }
+    },
+    "include": ["frontend/**/*"]
+  }
