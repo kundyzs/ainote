@@ -1,0 +1,8 @@
+passlib
+bcrypt
+python-jose[cryptography]
+boto3
+sqlalchemy
+psycopg2-binary
+celery
+redis
