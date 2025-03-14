@@ -18,23 +18,25 @@ export default function CaptureSetup({ onSetupComplete }: CaptureSetupProps) {
   const [isLoading, setIsLoading] = useState(false)
 
   const requestScreenCapture = async () => {
+    setIsLoading(true);
     try {
-      setIsLoading(true)
-      // In a real app, we would actually request screen capture permissions here
-      // This is a simulation for the prototype
-
-      // Simulate successful permission
-      setTimeout(() => {
-        setPermissionGranted(true)
-        setTimeout(() => {
-          onSetupComplete()
-        }, 1500)
-      }, 1000)
+      const response = await fetch("http://127.0.0.1:8000/api/request-permission", {
+        method: "POST",
+      });
+  
+      if (!response.ok) {
+        throw new Error("Failed to request permission");
+      }
+  
+      const data = await response.json();
+      setPermissionGranted(true);
+      onSetupComplete();
     } catch (error) {
-      console.error("Error requesting screen capture:", error)
-      setIsLoading(false)
+      console.error("Error requesting screen capture:", error);
+    } finally {
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[80vh] p-4">

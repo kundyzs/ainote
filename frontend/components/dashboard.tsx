@@ -17,12 +17,16 @@ export default function Dashboard() {
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null)
   const [notes, setNotes] = useState<Note[]>([])
 
+  // Fetch notes from the backend
+  useEffect(() => {
+    fetchNotes();
+  }, []);
+
   // Simulate AI generating notes over time
   useEffect(() => {
     if (isCapturing) {
-      const interval = setInterval(() => {
-        // Simulate AI detecting and generating notes
-        const randomType = Math.random() > 0.5 ? "slide" : "video"
+      const interval = setInterval(async () => {
+        const randomType = Math.random() > 0.5 ? "slide" : "video";
         const newNote: Note = {
           id: Date.now().toString(),
           title:
@@ -33,14 +37,66 @@ export default function Dashboard() {
           timestamp: new Date(),
           type: randomType,
           source: randomType === "slide" ? "PowerPoint Presentation" : "Recorded Lecture",
-        }
+        };
 
-        setNotes((prev) => [newNote, ...prev])
-      }, 15000) // Add a new note every 15 seconds
+        await saveNote(newNote);
+        setNotes((prev) => [newNote, ...prev]);
+      }, 15000);
 
-      return () => clearInterval(interval)
+      return () => clearInterval(interval);
     }
-  }, [isCapturing])
+  }, [isCapturing]);
+
+  // WebSocket for real-time updates
+  useEffect(() => {
+    const socket = new WebSocket("ws://127.0.0.1:8000/ws");
+
+    socket.onopen = () => {
+      console.log("WebSocket connection established");
+    };
+
+    socket.onmessage = (event) => {
+      const newNote = JSON.parse(event.data);
+      setNotes((prev) => [newNote, ...prev]);
+    };
+
+    return () => {
+      socket.close();
+    };
+  }, []);
+
+  // Fetch notes from the backend
+  const fetchNotes = async () => {
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/notes");
+      if (!response.ok) {
+        throw new Error("Failed to fetch notes");
+      }
+      const data = await response.json();
+      setNotes(data);
+    } catch (error) {
+      console.error("Error fetching notes:", error);
+    }
+  };
+
+  // Save a note to the backend
+  const saveNote = async (note: Note) => {
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/notes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(note),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to save note");
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error saving note:", error);
+    }
+  };
 
   // Helper to generate sample content
   const generateSampleContent = (type: string): string => {
@@ -61,10 +117,24 @@ export default function Dashboard() {
     }
   }
 
-  const handleExport = (format: "pdf" | "txt") => {
-    // In a real app, this would trigger actual export functionality
-    alert(`Exporting notes as ${format.toUpperCase()}`)
-  }
+  // Handle export
+  const handleExport = async (format: "pdf" | "txt") => {
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/api/export?format=${format}`);
+      if (!response.ok) {
+        throw new Error("Failed to export notes");
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `notes.${format}`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error exporting notes:", error);
+    }
+  };
 
   const toggleCapture = () => {
     setIsCapturing(!isCapturing)
@@ -79,9 +149,11 @@ export default function Dashboard() {
     return notes.find((note) => note.id === activeNoteId)
   }
 
-  const updateNote = (updatedContent: string) => {
-    setNotes(notes.map((note) => (note.id === activeNoteId ? { ...note, content: updatedContent } : note)))
-  }
+  const updateNote = async (updatedContent: string) => {
+    const updatedNote = { ...getActiveNote(), content: updatedContent };
+    await saveNote(updatedNote); // Save the updated note to the backend
+    setNotes(notes.map((note) => (note.id === activeNoteId ? updatedNote : note)));
+};
 
   return (
     <motion.div

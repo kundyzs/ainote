@@ -23,13 +23,10 @@ export default function NotesEditor({ note, onUpdate }: NotesEditorProps) {
   }
 
   const handleSave = () => {
-    setIsSaving(true)
-    // Simulate save delay
-    setTimeout(() => {
-      onUpdate(content)
-      setIsSaving(false)
-    }, 500)
-  }
+    setIsSaving(true);
+    onUpdate(content); // Call the parent's update function
+    setIsSaving(false);
+  };
 
   return (
     <Card className="bg-black/40 border-white/10 backdrop-blur-lg shadow-[0_0_15px_rgba(125,125,255,0.1)]">

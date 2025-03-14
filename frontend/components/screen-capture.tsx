@@ -15,43 +15,53 @@ export default function ScreenCapture({ isActive }: ScreenCaptureProps) {
   const requestRef = useRef<number | null>(null)
   const [processingStatus, setProcessingStatus] = useState<string | null>(null)
 
-  // In a real app, we would set up actual screen capture
-  // This is a simulated version for the prototype
+  const sendFrameToBackend = async (frame: Blob) => {
+    const formData = new FormData();
+    formData.append("file", frame);
+  
+    const response = await fetch("http://127.0.0.1:8000/api/process-frame", {
+      method: "POST",
+      body: formData,
+    });
+  
+    if (!response.ok) {
+      throw new Error("Failed to process frame");
+    }
+  
+    return await response.json();
+  };
+  
   useEffect(() => {
-    if (!isActive) {
-      if (requestRef.current) {
-        cancelAnimationFrame(requestRef.current)
+    if (!isActive) return;
+  
+    const captureFrame = async () => {
+      if (videoRef.current && canvasRef.current) {
+        const canvas = canvasRef.current;
+        const video = videoRef.current;
+  
+        // Draw the current video frame onto the canvas
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+  
+        // Convert the canvas image to a Blob
+        canvas.toBlob(async (blob) => {
+          if (blob) {
+            try {
+              const result = await sendFrameToBackend(blob);
+              console.log("Frame processed:", result);
+            } catch (error) {
+              console.error("Error processing frame:", error);
+            }
+          }
+        }, "image/jpeg");
       }
-      setProcessingStatus(null)
-      return
-    }
-
-    // Simulate screen sampling and AI processing
-    const simulateProcessing = () => {
-      const statuses = [
-        "Analyzing slide content...",
-        "Identifying key points...",
-        "Processing lecture information...",
-        "Extracting core concepts...",
-        "Summarizing content...",
-      ]
-
-      // Change status randomly
-      if (Math.random() > 0.8) {
-        setProcessingStatus(statuses[Math.floor(Math.random() * statuses.length)])
-      }
-
-      requestRef.current = requestAnimationFrame(simulateProcessing)
-    }
-
-    requestRef.current = requestAnimationFrame(simulateProcessing)
-
-    return () => {
-      if (requestRef.current) {
-        cancelAnimationFrame(requestRef.current)
-      }
-    }
-  }, [isActive])
+    };
+  
+    const interval = setInterval(captureFrame, 5000); // Capture a frame every 5 seconds
+    return () => clearInterval(interval);
+  }, [isActive]);
 
   return (
     <div className="w-full">
