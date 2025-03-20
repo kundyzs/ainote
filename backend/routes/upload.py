@@ -1,5 +1,5 @@
 from fastapi import APIRouter, UploadFile, File
-from ..services.ai_service import process_file, extract_text_from_image
+from services.ai_service import process_file, extract_text_from_image
 
 router = APIRouter()
 

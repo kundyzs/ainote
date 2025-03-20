@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.api.ws import router as websocket_router
-from backend.routes.upload import router as upload_router 
+from api.ws import router as websocket_router
+from routes.upload import router as upload_router 
 
 app = FastAPI()
 
@@ -20,3 +20,6 @@ app.include_router(upload_router)
 @app.get("/")
 def read_root():
     return {"message": "Welcome to AI Note Taker!"}
+
+# Run uvicorn server with:
+# uvicorn main:app --reload
