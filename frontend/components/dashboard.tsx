@@ -10,6 +10,8 @@ import ScreenCapture from "@/components/screen-capture"
 import type { Note } from "@/types"
 import NotesEditor from "@/components/notes-editor"
 import { motion, AnimatePresence } from "framer-motion"
+import { fetchNotes } from "@/notes"
+import { saveNote } from "@/notes"
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("current")
@@ -65,39 +67,6 @@ export default function Dashboard() {
     };
   }, []);
 
-  // Fetch notes from the backend
-  const fetchNotes = async () => {
-    try {
-      const response = await fetch("http://127.0.0.1:8000/api/notes");
-      if (!response.ok) {
-        throw new Error("Failed to fetch notes");
-      }
-      const data = await response.json();
-      setNotes(data);
-    } catch (error) {
-      console.error("Error fetching notes:", error);
-    }
-  };
-
-  // Save a note to the backend
-  const saveNote = async (note: Note) => {
-    try {
-      const response = await fetch("http://127.0.0.1:8000/api/notes", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(note),
-      });
-      if (!response.ok) {
-        throw new Error("Failed to save note");
-      }
-      return await response.json();
-    } catch (error) {
-      console.error("Error saving note:", error);
-    }
-  };
-
   // Helper to generate sample content
   const generateSampleContent = (type: string): string => {
     if (type === "slide") {
@@ -143,17 +112,21 @@ export default function Dashboard() {
   const handleNoteSelect = (noteId: string) => {
     setActiveNoteId(noteId)
     setActiveTab("editor")
-  }
+}
 
   const getActiveNote = () => {
-    return notes.find((note) => note.id === activeNoteId)
+      return notes.find((note) => note.id === activeNoteId)
   }
 
   const updateNote = async (updatedContent: string) => {
-    const updatedNote = { ...getActiveNote(), content: updatedContent };
-    await saveNote(updatedNote); // Save the updated note to the backend
-    setNotes(notes.map((note) => (note.id === activeNoteId ? updatedNote : note)));
-};
+      const activeNote = getActiveNote();
+      if (!activeNote) {
+          throw new Error("Active note not found");
+      }
+      const updatedNote = { ...activeNote, content: updatedContent };
+      await saveNote(updatedNote); // Save the updated note to the backend
+      setNotes(notes.map((note) => (note.id === activeNoteId ? updatedNote : note)));
+  };
 
   return (
     <motion.div

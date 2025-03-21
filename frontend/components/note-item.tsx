@@ -1,11 +1,12 @@
 "use client"
 
-import React from "react"
+import React, { useEffect, useState } from "react"
 import { formatDistanceToNow } from "date-fns"
 import { BookOpen, Video } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Note } from "@/types"
 import { motion } from "framer-motion"
+import { fetchNotes } from "@/notes" // Import the fetchNotes function
 
 interface NoteItemProps {
   note: Note
@@ -57,4 +58,3 @@ export default function NoteItem({ note, onClick, isActive }: NoteItemProps) {
     </motion.div>
   )
 }
-

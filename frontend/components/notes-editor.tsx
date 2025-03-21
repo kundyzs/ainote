@@ -8,6 +8,7 @@ import { Save, BookOpen, Video } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import type { Note } from "@/types"
 import { motion } from "framer-motion"
+import { saveNote } from "@/notes" // Import the saveNote function
 
 interface NotesEditorProps {
   note: Note | undefined
@@ -22,10 +23,17 @@ export default function NotesEditor({ note, onUpdate }: NotesEditorProps) {
     return null
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsSaving(true);
-    onUpdate(content); // Call the parent's update function
-    setIsSaving(false);
+    try {
+      // Call the backend to save the note
+      const updatedNote = await saveNote({ ...note, content });
+      onUpdate(updatedNote.content); // Update the parent component
+    } catch (error) {
+      console.error("Failed to save note:", error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -125,4 +133,3 @@ export default function NotesEditor({ note, onUpdate }: NotesEditorProps) {
     </Card>
   )
 }
-
