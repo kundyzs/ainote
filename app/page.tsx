@@ -16,14 +16,53 @@ import CaptureSetup from "@/components/capture-setup"
 import { AnimatePresence, motion } from "framer-motion"
 import { ArrowUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { fetchNotes, saveNote } from "@/notes" // Import API functions
+import type { Note } from "@/types" // Import Note type
 
 export default function Home() {
   const [isSetupComplete, setIsSetupComplete] = useState(false)
   const [isAppMode, setIsAppMode] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [showScrollTop, setShowScrollTop] = useState(false)
+  const [notes, setNotes] = useState<Note[]>([]) // State for notes
 
   const topRef = useRef<HTMLDivElement>(null)
+
+  // Fetch notes when app mode is active
+  useEffect(() => {
+    if (isAppMode) {
+      const getNotes = async () => {
+        try {
+          const notes = await fetchNotes()
+          setNotes(notes)
+        } catch (error) {
+          console.error("Failed to fetch notes:", error)
+        }
+      }
+      getNotes()
+    }
+  }, [isAppMode])
+
+  // Handle saving a note
+  const handleSaveNote = async (note: Note) => {
+    try {
+      const savedNote = await saveNote(note)
+      setNotes((prevNotes) => {
+        const existingNoteIndex = prevNotes.findIndex((n) => n.id === note.id)
+        if (existingNoteIndex !== -1) {
+          // Update existing note
+          const updatedNotes = [...prevNotes]
+          updatedNotes[existingNoteIndex] = savedNote
+          return updatedNotes
+        } else {
+          // Add new note
+          return [...prevNotes, savedNote]
+        }
+      })
+    } catch (error) {
+      console.error("Failed to save note:", error)
+    }
+  }
 
   useEffect(() => {
     setMounted(true)
@@ -62,7 +101,11 @@ export default function Home() {
               className="relative z-10"
             >
               <main className="container mx-auto py-6 px-4 md:px-6">
-                {!isSetupComplete ? <CaptureSetup onSetupComplete={() => setIsSetupComplete(true)} /> : <Dashboard />}
+                {!isSetupComplete ? (
+                  <CaptureSetup onSetupComplete={() => setIsSetupComplete(true)} />
+                ) : (
+                  <Dashboard notes={notes} onSaveNote={handleSaveNote} />
+                )}
               </main>
             </motion.div>
           ) : (
@@ -109,4 +152,3 @@ export default function Home() {
     </ThemeProvider>
   )
 }
-

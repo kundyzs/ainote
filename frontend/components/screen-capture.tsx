@@ -4,64 +4,107 @@ import React, { useEffect, useRef, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, Sparkles } from "lucide-react"
 import { motion } from "framer-motion"
+import { Button } from "@/components/ui/button"
 
 interface ScreenCaptureProps {
   isActive: boolean
+  onStartCapture: (stream: MediaStream) => void
+  onStopCapture: () => void
 }
 
-export default function ScreenCapture({ isActive }: ScreenCaptureProps) {
+export default function ScreenCapture({ isActive, onStartCapture, onStopCapture }: ScreenCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const requestRef = useRef<number | null>(null)
   const [processingStatus, setProcessingStatus] = useState<string | null>(null)
+  const [mediaStream, setMediaStream] = useState<MediaStream | null>(null)
 
+  // Start screen capture
+  const handleStartCapture = async () => {
+    try {
+      // Request screen capture permissions
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: false,
+      })
+
+      // Set the stream to the video element
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        videoRef.current.play()
+      }
+
+      // Notify the parent component
+      onStartCapture(stream)
+      setMediaStream(stream)
+      setProcessingStatus("Screen capture started")
+    } catch (error) {
+      console.error("Failed to start screen capture:", error)
+      setProcessingStatus("Failed to start screen capture")
+    }
+  }
+
+  // Stop screen capture
+  const handleStopCapture = () => {
+    if (mediaStream) {
+      mediaStream.getTracks().forEach((track) => track.stop()) // Stop all tracks
+      setMediaStream(null)
+      if (videoRef.current) {
+        videoRef.current.srcObject = null
+      }
+      onStopCapture()
+      setProcessingStatus("Screen capture stopped")
+    }
+  }
+
+  // Send frames to the backend
   const sendFrameToBackend = async (frame: Blob) => {
-    const formData = new FormData();
-    formData.append("file", frame);
-  
+    const formData = new FormData()
+    formData.append("file", frame)
+
     const response = await fetch("http://127.0.0.1:8000/api/process-frame", {
       method: "POST",
       body: formData,
-    });
-  
+    })
+
     if (!response.ok) {
-      throw new Error("Failed to process frame");
+      throw new Error("Failed to process frame")
     }
-  
-    return await response.json();
-  };
-  
+
+    return await response.json()
+  }
+
+  // Capture frames periodically
   useEffect(() => {
-    if (!isActive) return;
-  
+    if (!isActive || !mediaStream) return
+
     const captureFrame = async () => {
       if (videoRef.current && canvasRef.current) {
-        const canvas = canvasRef.current;
-        const video = videoRef.current;
-  
+        const canvas = canvasRef.current
+        const video = videoRef.current
+
         // Draw the current video frame onto the canvas
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext("2d");
-        ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
-  
+        canvas.width = video.videoWidth
+        canvas.height = video.videoHeight
+        const ctx = canvas.getContext("2d")
+        ctx?.drawImage(video, 0, 0, canvas.width, canvas.height)
+
         // Convert the canvas image to a Blob
         canvas.toBlob(async (blob) => {
           if (blob) {
             try {
-              const result = await sendFrameToBackend(blob);
-              console.log("Frame processed:", result);
+              const result = await sendFrameToBackend(blob)
+              console.log("Frame processed:", result)
             } catch (error) {
-              console.error("Error processing frame:", error);
+              console.error("Error processing frame:", error)
             }
           }
-        }, "image/jpeg");
+        }, "image/jpeg")
       }
-    };
-  
-    const interval = setInterval(captureFrame, 5000); // Capture a frame every 5 seconds
-    return () => clearInterval(interval);
-  }, [isActive]);
+    }
+
+    const interval = setInterval(captureFrame, 5000) // Capture a frame every 5 seconds
+    return () => clearInterval(interval)
+  }, [isActive, mediaStream])
 
   return (
     <div className="w-full">
@@ -157,7 +200,7 @@ export default function ScreenCapture({ isActive }: ScreenCaptureProps) {
           )}
         </div>
 
-        {/* Hidden video and canvas elements that would be used in a real implementation */}
+        {/* Hidden video and canvas elements */}
         <video ref={videoRef} className="hidden" autoPlay playsInline muted></video>
         <canvas ref={canvasRef} className="hidden"></canvas>
       </motion.div>
@@ -171,18 +214,13 @@ export default function ScreenCapture({ isActive }: ScreenCaptureProps) {
             {isActive ? "Active" : "Inactive"}
           </Badge>
         </motion.div>
-        <motion.p
-          className="text-sm text-white/60"
-          initial={{ opacity: 0, x: 10 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.4 }}
+        <Button
+          onClick={isActive ? handleStopCapture : handleStartCapture}
+          variant={isActive ? "destructive" : "default"}
         >
-          {isActive
-            ? "AI is analyzing your screen content and creating notes"
-            : "Click 'Start Capturing' to enable AI note taking"}
-        </motion.p>
+          {isActive ? "Stop Capture" : "Grant Screen Permission"}
+        </Button>
       </div>
     </div>
   )
 }
-

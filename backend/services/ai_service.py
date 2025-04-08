@@ -4,7 +4,25 @@ import PyPDF2
 import whisper
 import os
 from transformers import pipeline
+from groq import Groq
 
+# TODO: Make an API for notes making
+def use_groq(text):
+    client = Groq(
+        api_key=os.environ.get("GROQ_API_KEY"),
+    )
+
+    chat_completion = client.chat.completions.create(
+        messages=[
+            {
+                "role": "user",
+                "content": "Generate notes for this: {text}",
+            }
+        ],
+        model="deepseek-r1-distill-llama-70b",
+    )
+
+    return chat_completion.choices[0].message.content
 
 def process_file(file_path):
     _, file_extension = os.path.splitext(file_path)

@@ -10,123 +10,78 @@ import ScreenCapture from "@/components/screen-capture"
 import type { Note } from "@/types"
 import NotesEditor from "@/components/notes-editor"
 import { motion, AnimatePresence } from "framer-motion"
-import { fetchNotes } from "@/notes"
-import { saveNote } from "@/notes"
 
-export default function Dashboard() {
+interface DashboardProps {
+  notes: Note[] // Notes passed from the parent component
+  onSaveNote: (note: Note) => void // Function to save/update a note
+}
+
+export default function Dashboard({ notes, onSaveNote }: DashboardProps) {
   const [activeTab, setActiveTab] = useState("current")
-  const [isCapturing, setIsCapturing] = useState(true)
+  const [isCapturing, setIsCapturing] = useState(false) // Track screen capture state
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null)
-  const [notes, setNotes] = useState<Note[]>([])
-
-  // Fetch notes from the backend
-  useEffect(() => {
-    fetchNotes();
-  }, []);
-
-  // Simulate AI generating notes over time
-  useEffect(() => {
-    if (isCapturing) {
-      const interval = setInterval(async () => {
-        const randomType = Math.random() > 0.5 ? "slide" : "video";
-        const newNote: Note = {
-          id: Date.now().toString(),
-          title:
-            randomType === "slide"
-              ? `Lecture Slide ${Math.floor(Math.random() * 20) + 1}`
-              : `Video Lecture ${Math.floor(Math.random() * 10) + 1}`,
-          content: generateSampleContent(randomType),
-          timestamp: new Date(),
-          type: randomType,
-          source: randomType === "slide" ? "PowerPoint Presentation" : "Recorded Lecture",
-        };
-
-        await saveNote(newNote);
-        setNotes((prev) => [newNote, ...prev]);
-      }, 15000);
-
-      return () => clearInterval(interval);
-    }
-  }, [isCapturing]);
-
-  // WebSocket for real-time updates
-  useEffect(() => {
-    const socket = new WebSocket("ws://127.0.0.1:8000/ws");
-
-    socket.onopen = () => {
-      console.log("WebSocket connection established");
-    };
-
-    socket.onmessage = (event) => {
-      const newNote = JSON.parse(event.data);
-      setNotes((prev) => [newNote, ...prev]);
-    };
-
-    return () => {
-      socket.close();
-    };
-  }, []);
-
-  // Helper to generate sample content
-  const generateSampleContent = (type: string): string => {
-    if (type === "slide") {
-      const slideContents = [
-        "• Key feature of reinforcement learning is the reward signal\n• Unlike supervised learning, no labeled examples are provided\n• Agent learns through trial and error interactions with environment\n• Policy optimization is a core concept in modern approaches",
-        "• Neural networks can approximate complex functions\n• Deep learning enables end-to-end learning without feature engineering\n• Convolutional layers are effective for spatial data\n• Recurrent architectures handle sequential information",
-        "• Data preprocessing is critical for model performance\n• Feature scaling improves convergence rates\n• Categorical variables require encoding strategies\n• Missing values should be handled appropriately",
-      ]
-      return slideContents[Math.floor(Math.random() * slideContents.length)]
-    } else {
-      const videoContents = [
-        "The lecturer explained how transformer models work by using self-attention mechanisms to weigh different parts of the input sequence. This allows the model to focus on relevant information regardless of position in the sequence, which was a breakthrough compared to RNNs and LSTMs.",
-        "Today's session covered gradient descent optimization algorithms. The professor described how Adam combines the benefits of AdaGrad and RMSProp, adaptively adjusting learning rates for each parameter while maintaining momentum.",
-        "The key takeaway from this part of the lecture was how ensemble methods reduce variance by combining multiple models. Random Forests specifically use bagging and feature randomness to create diverse decision trees.",
-      ]
-      return videoContents[Math.floor(Math.random() * videoContents.length)]
-    }
-  }
+  const [mediaStream, setMediaStream] = useState<MediaStream | null>(null) // Store the MediaStream
 
   // Handle export
   const handleExport = async (format: "pdf" | "txt") => {
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/export?format=${format}`);
+      const response = await fetch(`http://127.0.0.1:8000/api/export?format=${format}`)
       if (!response.ok) {
-        throw new Error("Failed to export notes");
+        throw new Error("Failed to export notes")
       }
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `notes.${format}`;
-      a.click();
-      window.URL.revokeObjectURL(url);
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `notes.${format}`
+      a.click()
+      window.URL.revokeObjectURL(url)
     } catch (error) {
-      console.error("Error exporting notes:", error);
+      console.error("Error exporting notes:", error)
     }
-  };
+  }
 
-  const toggleCapture = () => {
-    setIsCapturing(!isCapturing)
+  // Handle screen capture start
+  const handleStartCapture = async (stream: MediaStream) => {
+    setIsCapturing(true)
+    setMediaStream(stream) // Store the MediaStream for cleanup
+  }
+
+  // Handle screen capture stop
+  const handleStopCapture = () => {
+    setIsCapturing(false)
+    if (mediaStream) {
+      mediaStream.getTracks().forEach((track) => track.stop()) // Stop all tracks in the stream
+      setMediaStream(null) // Clear the MediaStream
+    }
   }
 
   const handleNoteSelect = (noteId: string) => {
     setActiveNoteId(noteId)
     setActiveTab("editor")
-}
+  }
 
   const getActiveNote = () => {
-      return notes.find((note) => note.id === activeNoteId)
+    return notes.find((note) => note.id === activeNoteId)
   }
 
   const updateNote = async (updatedContent: string) => {
-      const activeNote = getActiveNote();
-      if (!activeNote) {
-          throw new Error("Active note not found");
+    const activeNote = getActiveNote()
+    if (!activeNote) {
+      throw new Error("Active note not found")
+    }
+    const updatedNote = { ...activeNote, content: updatedContent }
+    await onSaveNote(updatedNote) // Use the onSaveNote prop to save the note
+  }
+
+  // Cleanup the MediaStream when the component unmounts
+  useEffect(() => {
+    return () => {
+      if (mediaStream) {
+        mediaStream.getTracks().forEach((track) => track.stop())
       }
-      const updatedNote = { ...activeNote, content: updatedContent };
-      await saveNote(updatedNote); // Save the updated note to the backend
-      setNotes(notes.map((note) => (note.id === activeNoteId ? updatedNote : note)));
-  };
+    }
+  }, [mediaStream])
 
   return (
     <motion.div
@@ -163,7 +118,14 @@ export default function Dashboard() {
                 <Button
                   variant={isCapturing ? "destructive" : "outline"}
                   size="sm"
-                  onClick={toggleCapture}
+                  onClick={isCapturing ? handleStopCapture : async () => {
+                    try {
+                      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                      handleStartCapture(stream);
+                    } catch (error) {
+                      console.error("Error starting screen capture:", error);
+                    }
+                  }}
                   className={isCapturing ? "" : "border-white/20 bg-black/50"}
                 >
                   {isCapturing ? "Stop Capturing" : "Start Capturing"}
@@ -194,7 +156,11 @@ export default function Dashboard() {
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <ScreenCapture isActive={isCapturing} />
+                        <ScreenCapture
+                          isActive={isCapturing}
+                          onStartCapture={handleStartCapture}
+                          onStopCapture={handleStopCapture}
+                        />
                       </CardContent>
                     </Card>
                   </TabsContent>
@@ -303,4 +269,3 @@ function ExportButton({ format, onClick }: { format: "pdf" | "txt"; onClick: () 
     </motion.div>
   )
 }
-
